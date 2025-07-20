@@ -22,6 +22,10 @@ bot = discord.Client(intents=intents)
 @bot.event
 async def on_ready():
     print(f'✅ Logged in as {bot.user}')
+    guild = bot.get_guild(GUILD_ID)
+    member_count = guild.member_count
+    activity = discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} members in .gg/beetleshelp")
+    await bot.change_presence(activity=activity)
 
 @bot.event
 async def on_message(message):
@@ -36,20 +40,18 @@ async def on_message(message):
             member = guild.get_member(user_id)
 
             if member:
+                log_channel = bot.get_channel(LOG_CHANNEL_ID)
                 try:
                     duration = timedelta(days=14)
                     await member.timeout(duration, reason="Middle Finger Reaction (Automated System Timeout)")
                     await message.add_reaction("✅")
                     print(f"✅ Timed out {member} for 14 days.")
 
-                    # Log message
-                    log_channel = bot.get_channel(LOG_CHANNEL_ID)
                     if log_channel:
                         await log_channel.send(
                             f"🔇 **Muted <@{user_id}> ({user_id}) for 14 days** due to \"Middle Finger Reaction (Automated System Timeout)\"")
                 except discord.Forbidden:
                     print("❌ Missing permissions to timeout this member.")
-                    log_channel = bot.get_channel(LOG_CHANNEL_ID)
                     if log_channel:
                         await log_channel.send(
                             f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&1281148981367410822> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
