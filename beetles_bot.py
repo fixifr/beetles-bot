@@ -39,6 +39,7 @@ async def on_message(message):
                 try:
                     duration = timedelta(days=14)
                     await member.timeout(duration, reason="Middle Finger Reaction (Automated System Timeout)")
+                    await message.add_reaction("✅")
                     print(f"✅ Timed out {member} for 14 days.")
 
                     # Log message
@@ -52,10 +53,12 @@ async def on_message(message):
                     if log_channel:
                         await log_channel.send(
                             f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&1281148981367410822> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
+                        await message.add_reaction("❌")
                 except Exception as e:
                     print(f"❌ Error timing out user: {e}")
                     if log_channel:
                         await log_channel.send(
                             f"❌ **Error timing out user <@{user_id}> ({user_id}).** <@&1281148981367410822> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
+                        await message.add_reaction("❌")
 
 bot.run(TOKEN)
