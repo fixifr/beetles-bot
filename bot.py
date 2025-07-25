@@ -30,18 +30,16 @@ async def on_ready():
     log_channel = bot.get_channel(MFINGER_CHANNEL_ID)
     try:
         if log_channel:
-            await log_channel.send("Good morning! I just woke back up from an update. ☀️ Gotta let my developer know everything is fine. If you are seeing this message and ur not my dev then just ignore it :) || <@679810887518781495> ||")
+            pass
+            await log_channel.send("|| <@679810887518781495> || Good morning, I am awake. ☀️ If you are not my developer, just ignore this message :)")
     except:
         print("❌ Unable to send startup message.")
 
 @bot.event
 async def on_message(message):
-    if message.author.bot:
-        return
-
     # Middle Finger Reaction Auto Timeout
     if message.channel.id == MFINGER_CHANNEL_ID:
-        if "Middle Finger Reaction Detected" in message.content:
+        if "middle finger reaction detected" in message.content.lower():
             match = re.search(r'\*\*User:\*\* <@(\d+)> \((\d+)\)', message.content)
             if match:
                 user_id = int(match.group(2))
@@ -60,10 +58,9 @@ async def on_message(message):
                             await log_channel.send(
                                 f"🔇 **Muted <@{user_id}> ({user_id}) for 14 days** due to \"Middle Finger Reaction (Automated System Timeout)\"")
                     except discord.Forbidden:
-                        print("❌ Missing permissions to timeout this member.")
+                        print(f"❌ Missing permissions to timeout {user_id}")
                         if log_channel:
-                            await log_channel.send(
-                                f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&1281148981367410822> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
+                            await log_channel.send(f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&1281148981367410822> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
                             await message.add_reaction("❌")
                     except Exception as e:
                         print(f"❌ Error timing out user: {e}")
