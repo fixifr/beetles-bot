@@ -12,9 +12,10 @@ TOKEN = os.getenv("BOT_TOKEN")
 GUILD_ID = 1281044586244079636
 LOGS_CHANNEL_ID = 1396679018430074951
 MFINGER_CHANNEL_ID = 1395862969874649149
-CREATOR_CHANNEL_ID = 1387607135675748414
+POST_CHANNEL_ID = 1387607135675748414
 CREATOR_ROLE_ID = 1387605514946478080
-MEMBER_ROLE_ID = 1281148981367410822
+CREATOR_PING_ROLE_ID = 1387647177416769670
+EMERGENCY_ROLE_ID = 1281148981367410822
 
 intents = discord.Intents.all()
 intents.message_content = True
@@ -68,13 +69,13 @@ async def on_message(message):
                         print(f"❌ Missing permissions to timeout {user_id}")
                         if log_channel:
                             await log_channel.send(
-                                f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&{MEMBER_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
+                                f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&{EMERGENCY_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
                             await message.add_reaction("❌")
                     except Exception as e:
                         print(f"❌ Error timing out user: {e}")
                         if log_channel:
                             await log_channel.send(
-                                f"❌ **Error timing out user <@{user_id}> ({user_id}).** <@&{MEMBER_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
+                                f"❌ **Error timing out user <@{user_id}> ({user_id}).** <@&{EMERGENCY_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
                             await message.add_reaction("❌")
 
     await bot.process_commands(message)
@@ -90,10 +91,13 @@ async def on_command_error(ctx, error):
 @bot.command()
 @commands.has_role(CREATOR_ROLE_ID)
 async def post(ctx, *, content: str):
-    formatted_content = content.strip()
-    await ctx.message.delete()
-    formatted_message = f"<@&{CREATOR_ROLE_ID}>\n# <@{ctx.message.author.id}>\n**has posted a new video:**\n\n{formatted_content}"
-    await ctx.send(formatted_message)
+    if ctx.channel.id == POST_CHANNEL_ID:
+        formatted_content = content.strip()
+        await ctx.message.delete()
+        formatted_message = f"<@&{CREATOR_PING_ROLE_ID}>\n# <@{ctx.message.author.id}>\n**has posted a new video:**\n\n{formatted_content}"
+        await ctx.send(formatted_message)
+    else:
+        return
 
 
 @post.error
@@ -120,10 +124,13 @@ async def post_error(ctx, error):
 @bot.command()
 @commands.has_role(CREATOR_ROLE_ID)
 async def nopingpost(ctx, *, content: str):
-    formatted_content = content.strip()
-    await ctx.message.delete()
-    formatted_message = f"# <@{ctx.message.author.id}>\n**has posted a new video:**\n\n{formatted_content}"
-    await ctx.send(formatted_message)
+    if ctx.channel.id == POST_CHANNEL_ID:
+        formatted_content = content.strip()
+        await ctx.message.delete()
+        formatted_message = f"# <@{ctx.message.author.id}>\n**has posted a new video:**\n\n{formatted_content}"
+        await ctx.send(formatted_message)
+    else:
+        return
 
 
 @nopingpost.error
@@ -154,6 +161,7 @@ async def purgeall(ctx, user_id: int):
     target = guild.get_member(user_id)
     log_lines = []
 
+    command_channel = ctx.channel
     await ctx.message.delete()
 
     if not target:
@@ -171,7 +179,7 @@ async def purgeall(ctx, user_id: int):
             try:
                 def is_target(m): return m.author.id == user_id
                 deleted = await channel.purge(limit=1000, check=is_target)
-                print(f"Deleted {len(deleted)} messages by {user_id} in {channel}")
+                print(f"Deleted {len(deleted)} message(s) by {user_id} in {channel}")
 
                 for msg in deleted:
                     log_lines.append(f"[#{channel.name}] {msg.created_at} - {msg.author.name}: {msg.content}")
@@ -189,7 +197,8 @@ async def purgeall(ctx, user_id: int):
         with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(log_lines))
 
-        await status_message.edit(content=
+        await status_message.delete()
+        await command_channel.send(
             f"✅ Purge complete for <@{user_id}>.\n"
             f"🔍 Scanned {checked_channels} channels.\n"
             f"🗑️ Deleted {deleted_total} messages.",
@@ -198,7 +207,8 @@ async def purgeall(ctx, user_id: int):
 
         os.remove(filename) 
     else:
-        await status_message.edit(content=
+        await status_message.delete()
+        await command_channel.send(
             f"✅ Purge complete for <@{user_id}>.\n"
             "🔍 Found 0 messages."
         )
