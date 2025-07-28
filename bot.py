@@ -15,6 +15,7 @@ MFINGER_CHANNEL_ID = 1395862969874649149
 POST_CHANNEL_ID = 1387607135675748414
 CREATOR_ROLE_ID = 1387605514946478080
 CREATOR_PING_ROLE_ID = 1387647177416769670
+STAFF_ROLE_ID = 1282120646817615985
 EMERGENCY_ROLE_ID = 1281148981367410822
 
 intents = discord.Intents.all()
@@ -23,28 +24,41 @@ intents.guilds = True
 intents.members = True
 intents.messages = True
 
-bot = commands.Bot(command_prefix='.', intents=intents, case_insensitive=True)
+bot = commands.Bot(command_prefix='.', intents=intents, case_insensitive=True, guild_ready_timeout=5)
+
+print(bot.get_guild(GUILD_ID))
 
 @bot.event
 async def on_ready():
-    print(f'✅ Online as {bot.user}')
+    print(f'✅ Logged in as {bot.user} (ID: {bot.user.id})')
+    
+    # Wait a few seconds to ensure guild cache is ready
+    await asyncio.sleep(3)
+
     guild = bot.get_guild(GUILD_ID)
+    if guild is None:
+        print("❌ Guild not found. It's likely not cached yet. Check if the bot is in the server or if intents are correct.")
+        return
+
+    print(f"✅ Connected to guild: {guild.name} (ID: {guild.id})")
     member_count = guild.member_count
-    activity = discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} members in .gg/beetleshelp")
+
+    activity = discord.Activity(
+        type=discord.ActivityType.watching,
+        name=f"{member_count} members in .gg/beetleshelp"
+    )
     await bot.change_presence(activity=activity)
 
     log_channel = bot.get_channel(LOGS_CHANNEL_ID)
-    try:
-        if log_channel:
+    if log_channel:
+        try:
             await log_channel.send("Good morning, I am awake. ☀️ || <@679810887518781495> ||")
-    except:
-        print("❌ Unable to send startup message.")
+            print("✅ Startup message sent.")
+        except Exception as e:
+            print(f"❌ Could not send startup message: {e}")
 
 @bot.event
 async def on_message(message):
-    if message.author.bot:
-        return
-
     # Middle Finger Auto Timeout
     if message.channel.id == MFINGER_CHANNEL_ID:
         if "middle finger reaction detected" in message.content.lower():
@@ -155,7 +169,7 @@ async def nopingpost_error(ctx, error):
 
 # .purgeall Command
 @bot.command()
-@commands.has_permissions(administrator=True)
+@commands.has_role(STAFF_ROLE_ID)
 async def purgeall(ctx, user_id: int):
     guild = ctx.guild
     target = guild.get_member(user_id)
