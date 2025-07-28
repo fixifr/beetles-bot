@@ -3,41 +3,48 @@ import re
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
+from discord.ext import commands
+import asyncio
 
 load_dotenv()
 
-TOKEN = os.getenv("BOT_TOKEN") 
-GUILD_ID = 1281044586244079636 
-MFINGER_CHANNEL_ID = 1395862969874649149  # Middle Finger detection channel
-CREATOR_CHANNEL_ID = 1387607135675748414 
-POST_ROLE_ID = 1387647177416769670
+TOKEN = os.getenv("BOT_TOKEN")
+GUILD_ID = 1281044586244079636
+LOGS_CHANNEL_ID = 1396679018430074951
+MFINGER_CHANNEL_ID = 1395862969874649149
+CREATOR_CHANNEL_ID = 1387607135675748414
+CREATOR_ROLE_ID = 1387605514946478080
+MEMBER_ROLE_ID = 1281148981367410822
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.message_content = True
 intents.guilds = True
 intents.members = True
 intents.messages = True
 
-bot = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix='.', intents=intents, case_insensitive=True)
 
 @bot.event
 async def on_ready():
-    print(f'Online as {bot.user}')
+    print(f'✅ Online as {bot.user}')
     guild = bot.get_guild(GUILD_ID)
     member_count = guild.member_count
     activity = discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} members in .gg/beetleshelp")
     await bot.change_presence(activity=activity)
-    log_channel = bot.get_channel(MFINGER_CHANNEL_ID)
+
+    log_channel = bot.get_channel(LOGS_CHANNEL_ID)
     try:
         if log_channel:
-            pass
-            await log_channel.send("|| <@679810887518781495> || Good morning, I am awake. ☀️ If you are not my developer, just ignore this message :)")
+            await log_channel.send("Good morning, I am awake. ☀️ || <@679810887518781495> ||")
     except:
         print("❌ Unable to send startup message.")
 
 @bot.event
 async def on_message(message):
-    # Middle Finger Reaction Auto Timeout
+    if message.author.bot:
+        return
+
+    # Middle Finger Auto Timeout
     if message.channel.id == MFINGER_CHANNEL_ID:
         if "middle finger reaction detected" in message.content.lower():
             match = re.search(r'\*\*User:\*\* <@(\d+)> \((\d+)\)', message.content)
@@ -60,26 +67,149 @@ async def on_message(message):
                     except discord.Forbidden:
                         print(f"❌ Missing permissions to timeout {user_id}")
                         if log_channel:
-                            await log_channel.send(f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&1281148981367410822> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
+                            await log_channel.send(
+                                f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&{MEMBER_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
                             await message.add_reaction("❌")
                     except Exception as e:
                         print(f"❌ Error timing out user: {e}")
                         if log_channel:
                             await log_channel.send(
-                                f"❌ **Error timing out user <@{user_id}> ({user_id}).** <@&1281148981367410822> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
+                                f"❌ **Error timing out user <@{user_id}> ({user_id}).** <@&{MEMBER_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
                             await message.add_reaction("❌")
 
-    # Creator Commands Channel
-    elif message.channel.id == CREATOR_CHANNEL_ID:
-        if message.content.lower().startswith(".post "):
-            content = message.content[6:].strip() 
-            await message.delete()
-            formatted = f"<@&{POST_ROLE_ID}>\n# {message.author.mention}\n**has posted a new video!**\n\n{content}"
-            await message.channel.send(formatted)
-        elif message.content.lower().startswith(".postnoping"):
-            content = message.content[6:].strip() 
-            await message.delete()
-            formatted = f"# {message.author.mention}\n**has posted a new video!**\n\n{content}"
-            await message.channel.send(formatted)
+    await bot.process_commands(message)
+
+# unknown command handling
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return
+    raise error
+
+# .post Command
+@bot.command()
+@commands.has_role(CREATOR_ROLE_ID)
+async def post(ctx, *, content: str):
+    formatted_content = content.strip()
+    await ctx.message.delete()
+    formatted_message = f"<@&{CREATOR_ROLE_ID}>\n# <@{ctx.message.author.id}>\n**has posted a new video:**\n\n{formatted_content}"
+    await ctx.send(formatted_message)
+
+
+@post.error
+async def post_error(ctx, error):
+    logs_channel = bot.get_channel(LOGS_CHANNEL_ID)
+    try:
+        if isinstance(error, commands.MissingRole):
+            error_msg = await ctx.send("🚫 You do not have permission to use this.")
+        elif isinstance(error, commands.MissingRequiredArgument):
+            error_msg = await ctx.send("⚠️ Usage: `.post <message>`")
+        else:
+            error_msg = await ctx.send(f"❌ Error: {error}")
+            if logs_channel:
+                await logs_channel.send(
+                    f"❌ Error in <#{ctx.channel.id}>:\n`{str(error)}`"
+                )
+        await asyncio.sleep(60)
+        await error_msg.delete()
+    except Exception as e:
+        print(f"Error during error handling: {e}")
+    await ctx.message.delete()
+
+# .nopingpost Command
+@bot.command()
+@commands.has_role(CREATOR_ROLE_ID)
+async def nopingpost(ctx, *, content: str):
+    formatted_content = content.strip()
+    await ctx.message.delete()
+    formatted_message = f"# <@{ctx.message.author.id}>\n**has posted a new video:**\n\n{formatted_content}"
+    await ctx.send(formatted_message)
+
+
+@nopingpost.error
+async def nopingpost_error(ctx, error):
+    logs_channel = bot.get_channel(LOGS_CHANNEL_ID)
+    try:
+        if isinstance(error, commands.MissingRole):
+            error_msg = await ctx.send("🚫 You do not have permission to use this.")
+        elif isinstance(error, commands.MissingRequiredArgument):
+            error_msg = await ctx.send("⚠️ Usage: `.nopingpost <message>`")
+        else:
+            error_msg = await ctx.send(f"❌ Error: {error}")
+            if logs_channel:
+                await logs_channel.send(
+                    f"❌ Error in <#{ctx.channel.id}>:\n`{str(error)}`"
+                )
+        await asyncio.sleep(10)
+        await error_msg.delete()
+    except Exception as e:
+        print(f"Error during error handling: {e}")
+    await ctx.message.delete()
+
+# .purgeall Command
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def purgeall(ctx, user_id: int):
+    guild = ctx.guild
+    target = guild.get_member(user_id)
+    log_lines = []
+
+    await ctx.message.delete()
+
+    if not target:
+        await ctx.send("❌ User not found.")
+        return
+
+    deleted_total = 0
+    checked_channels = 0
+
+    status_message = await ctx.send(f"🕒 Purge job for <@{user_id}> started by <@{ctx.message.author.id}>. Please wait, this can take several minutes...")
+
+    for channel in guild.text_channels:
+        if channel.permissions_for(target).send_messages:
+            checked_channels += 1
+            try:
+                def is_target(m): return m.author.id == user_id
+                deleted = await channel.purge(limit=1000, check=is_target)
+                print(f"Deleted {len(deleted)} messages by {user_id} in {channel}")
+
+                for msg in deleted:
+                    log_lines.append(f"[#{channel.name}] {msg.created_at} - {msg.author.name}: {msg.content}")
+
+                deleted_total += len(deleted)
+            except discord.NotFound:
+                print(f"❌ A message was already deleted in #{channel.name}.")
+            except discord.Forbidden:
+                print(f"❌ No perms in #{channel.name}")
+            except Exception as e:
+                print(f"⚠️ Error in #{channel.name}: {e}")
+
+    if log_lines:
+        filename = f"{user_id}.purgeall.txt"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write("\n".join(log_lines))
+
+        await status_message.edit(content=
+            f"✅ Purge complete for <@{user_id}>.\n"
+            f"🔍 Scanned {checked_channels} channels.\n"
+            f"🗑️ Deleted {deleted_total} messages.",
+            file=discord.File(fp=filename)
+        )
+
+        os.remove(filename) 
+    else:
+        await status_message.edit(content=
+            f"✅ Purge complete for <@{user_id}>.\n"
+            "🔍 Found 0 messages."
+        )
+
+@purgeall.error
+async def purgeall_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("🚫 You do not have permission to use this.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("⚠️ Usage: `.purgeall <user_id>`")
+    else:
+        await ctx.send(f"❌ Error: {error}")
 
 bot.run(TOKEN)
