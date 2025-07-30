@@ -106,11 +106,6 @@ async def on_command_error(ctx, error):
         return
     raise error
 
-# ignore .help command
-@bot.command()
-async def help(ctx):
-    return
-
 # .post Command
 @bot.command()
 @commands.has_role(CREATOR_ROLE_ID)
