@@ -63,7 +63,8 @@ async def on_message(message):
                 member = guild.get_member(user_id)
 
                 if member:
-                    log_channel = bot.get_channel(MFINGER_CHANNEL_ID)
+                    mfinger_channel = bot.get_channel(MFINGER_CHANNEL_ID)
+                    log_channel = bot.get_channel(LOGS_CHANNEL_ID)
                     try:
                         duration = timedelta(days=14)
                         await member.timeout(duration, reason="Middle Finger Reaction (Automated System Timeout)")
@@ -77,12 +78,16 @@ async def on_message(message):
                         print(f"❌ Missing permissions to timeout {user_id}")
                         if log_channel:
                             await log_channel.send(
+                                f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).**")
+                            await mfinger_channel.send(
                                 f"❌ **Missing permissions to timeout <@{user_id}> ({user_id}).** <@&{EMERGENCY_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
                             await message.add_reaction("❌")
                     except Exception as e:
                         print(f"❌ Error timing out user: {e}")
                         if log_channel:
                             await log_channel.send(
+                                f"❌ **Error timing out user <@{user_id}> ({user_id}).**")
+                            await mfinger_channel.send(
                                 f"❌ **Error timing out user <@{user_id}> ({user_id}).** <@&{EMERGENCY_ROLE_ID}> Manual Timeout Required \"?mute {user_id} 14d Middle Finger Reaction\"")
                             await message.add_reaction("❌")
 
