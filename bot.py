@@ -272,7 +272,7 @@ async def denyinterview(ctx, error):
         if isinstance(error, commands.MissingRole):
             error_msg = await ctx.send("🚫 You do not have permission to use this.")
         elif isinstance(error, commands.MissingRequiredArgument):
-            error_msg = await ctx.send("⚠️ Usage: `.post <message>`")
+            error_msg = await ctx.send("⚠️ Usage: `.denyinterview <user_id> <note>`")
         else:
             error_msg = await ctx.send(f"❌ Error: {error}")
             if logs_channel:
