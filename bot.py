@@ -20,6 +20,8 @@ CREATOR_ROLE_ID = 1387605514946478080
 CREATOR_PING_ROLE_ID = 1387647177416769670
 EMERGENCY_ROLE_ID = 1281148981367410822
 TRIAL_MODERATOR_ROLE_ID = 1377649082755190804
+MODERATOR_ROLE_ID = 1281049987261661185
+SENIOR_MODERATOR_ROLE_ID = 1380886815137071275
 HEAD_MODERATOR_ROLE_ID = 1287596206104641596
 ADMINISTRATOR_ROLE_ID = 1287596206104641596
 SENIOR_ADMINISTRATOR_ROLE_ID = 1287429827623649331
@@ -287,7 +289,7 @@ async def denyinterview(ctx, error):
 
 # .purgeall Command
 @bot.command()
-@commands.has_permissions(manage_messages=True)
+@has_any_role(SENIOR_MODERATOR_ROLE_ID, HEAD_MODERATOR_ROLE_ID, ADMINISTRATOR_ROLE_ID, SENIOR_ADMINISTRATOR_ROLE_ID, HEAD_ADMINISTRATOR_ROLE_ID, COMMUNITY_MANAGER_ROLE_ID, CO_FOUNDER_ROLE_ID, PHOLECTIFY_ROLE_ID)
 async def purgeall(ctx, user_id: int):
     guild = ctx.guild
     log_lines = []
@@ -352,7 +354,7 @@ async def purgeall(ctx, user_id: int):
 @purgeall.error
 async def purgeall_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
-        await ctx.send("🚫 You do not have permission to use this.")
+        await ctx.send("🚫 You do not have permission to use this. Please ping a Head Moderator + to use this command.")
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("⚠️ Usage: `.purgeall <user_id>`")
     else:
