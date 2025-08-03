@@ -1,5 +1,6 @@
 import discord
 import re
+from datetime import datetime
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
@@ -7,6 +8,9 @@ from discord.ext import commands
 import asyncio
 
 load_dotenv()
+
+BOT_VERSION = 1.3
+START_TIME = datetime.utcnow()
 
 TOKEN = os.getenv("BOT_TOKEN")
 GUILD_ID = 1281044586244079636
@@ -359,5 +363,52 @@ async def purgeall_error(ctx, error):
         await ctx.send("⚠️ Usage: `.purgeall <user_id>`")
     else:
         await ctx.send(f"❌ Error: {error}")
+
+# .info command
+@bot.command()
+async def info(ctx):
+    guild = ctx.guild
+    total_members = guild.member_count
+    online_members = len([
+        m for m in guild.members if m.status == discord.Status.online or m.status == discord.Status.dnd
+    ])
+
+    delta = datetime.utcnow() - START_TIME
+    days, seconds = delta.days, delta.seconds
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    botUptime = f"{days}d {hours}h {minutes}m {seconds}s"
+    botLatency = round(bot.latency * 1000)
+    timestamp = int(guild.created_at.timestamp())
+    discord_time_format = f"<t:{timestamp}:F>"
+
+    embed = discord.Embed(title=f"Beetle's Bot Version", description="**💬 Server + 🤖 Bot Info**\n", color=333333)
+    embed.add_field(name="🏷️ Server Name", value=f"{guild.name}", inline=True)
+    embed.add_field(name="🆔 Server ID", value=f"{guild.id}", inline=True)
+    embed.add_field(name="⏳ Server Creation Date", value=f"{guild.id}", inline=True)
+    embed.add_field(name="👥 Member Count", value=f"{online_members} online / {total_members} total", inline=True)
+    embed.add_field(name="🏷️ Bot Name", value=f"{bot.user.name}", inline=True)
+    embed.add_field(name="🆔 Bot ID", value=f"{bot.user.id}", inline=True)
+    embed.add_field(name="⏱️ Uptime", value=f"{botUptime}", inline=True)
+    embed.add_field(name="⚡ Latency", value=f"{botLatency}", inline=True)
+    embed.add_field(name="🛠️ Current Version", value=f"v{BOT_VERSION}", inline=True)
+    embed.add_field(name="🐍 Framework", value="Discord.py (Python)", inline=True)
+    embed.add_field(name="🗝️ Developer", value="<@679810887518781495>", inline=True)
+
+    support_button = discord.ui.Button(
+        label="Support the server",
+        url="https://buymeacoffee.com/ph0biaz",
+        style=discord.ButtonStyle.link
+    )
+
+    view = discord.ui.View()
+    view.add_item(support_button)
+
+    await ctx.send(embed=embed, view=view)
+
+@info.error
+async def info_error(ctx, error):
+    await ctx.send(f"❌ Error: {error}")
 
 bot.run(TOKEN)
