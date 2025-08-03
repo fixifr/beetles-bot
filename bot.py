@@ -9,7 +9,7 @@ import asyncio
 
 load_dotenv()
 
-BOT_VERSION = 1.3
+BOT_VERSION = 1.4
 START_TIME = datetime.utcnow()
 
 TOKEN = os.getenv("BOT_TOKEN")
@@ -406,6 +406,7 @@ async def info(ctx):
     view.add_item(support_button)
 
     await ctx.send(embed=embed, view=view)
+    await ctx.message.delete()
 
 @info.error
 async def info_error(ctx, error):
