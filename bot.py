@@ -386,7 +386,7 @@ async def info(ctx):
     embed = discord.Embed(title=f"Beetle's Bot Version", description="**💬 Server + 🤖 Bot Info**\n", color=333333)
     embed.add_field(name="🏷️ Server Name", value=f"{guild.name}", inline=True)
     embed.add_field(name="🆔 Server ID", value=f"{guild.id}", inline=True)
-    embed.add_field(name="⏳ Server Creation Date", value=f"{guild.id}", inline=True)
+    embed.add_field(name="⏳ Server Creation Date", value=f"{discord_time_format}", inline=True)
     embed.add_field(name="👥 Member Count", value=f"{online_members} online / {total_members} total", inline=True)
     embed.add_field(name="🏷️ Bot Name", value=f"{bot.user.name}", inline=True)
     embed.add_field(name="🆔 Bot ID", value=f"{bot.user.id}", inline=True)
