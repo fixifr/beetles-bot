@@ -287,18 +287,23 @@ async def denyinterview(ctx, error):
 
 # .purgeall Command
 @bot.command()
-@commands.has_permissions(administrator=True)
+@commands.has_permissions(manage_messages=True)
 async def purgeall(ctx, user_id: int):
     guild = ctx.guild
-    target = guild.get_member(user_id)
     log_lines = []
 
     command_channel = ctx.channel
     await ctx.message.delete()
 
-    if not target:
-        await ctx.send("❌ User not found.")
-        return
+    def is_target(m): return m.author.id == user_id
+
+    try:
+        target_user = await bot.fetch_user(user_id)
+        target_mention = f"<@{user_id}>"
+        target_name = f"{target_user.name}#{target_user.discriminator}"
+    except discord.NotFound:
+        target_mention = f"`{user_id}`"
+        target_name = f"User ID: {user_id}"
 
     deleted_total = 0
     checked_channels = 0
@@ -306,42 +311,41 @@ async def purgeall(ctx, user_id: int):
     status_message = await ctx.send(f"🕒 Purge job for <@{user_id}> started by <@{ctx.message.author.id}>. Please wait, this can take several minutes...")
 
     for channel in guild.text_channels:
-        if channel.permissions_for(target).send_messages:
-            checked_channels += 1
-            try:
-                def is_target(m): return m.author.id == user_id
-                deleted = await channel.purge(limit=1000, check=is_target)
-                print(f"Deleted {len(deleted)} message(s) by {user_id} in {channel}")
+        if not channel.permissions_for(ctx.guild.me).read_message_history:
+            continue
 
-                for msg in deleted:
-                    log_lines.append(f"[#{channel.name}] {msg.created_at} - {msg.author.name}: {msg.content}")
+        checked_channels += 1
 
-                deleted_total += len(deleted)
-            except discord.NotFound:
-                print(f"❌ A message was already deleted in #{channel.name}.")
-            except discord.Forbidden:
-                print(f"❌ No perms in #{channel.name}")
-            except Exception as e:
-                print(f"⚠️ Error in #{channel.name}: {e}")
+        try:
+            deleted = await channel.purge(limit=1000, check=is_target, bulk=True)
+
+            for msg in deleted:
+                log_lines.append(f"[TC: #{channel.name}] {msg.created_at} - {msg.author.name}: {msg.content}")
+            
+            deleted_total += len(deleted)
+        except discord.Forbidden:
+            print(f"❌ No permissions in #{channel.name}")
+        except Exception as e:
+            print(f"⚠️ Error in #{channel.name}: {e}")
 
     if log_lines:
-        filename = f"{user_id}.purgeall.txt"
+        filename = f"{user_id}_purgeall_log.txt"
         with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(log_lines))
 
         await status_message.delete()
         await command_channel.send(
-            f"✅ Purge complete for <@{user_id}>.\n"
+            f"✅ Purge complete for {target_mention}.\n"
             f"🔍 Scanned {checked_channels} channels.\n"
-            f"🗑️ Deleted {deleted_total} messages.",
+            f"🗑️ Deleted {deleted_total} messages from {target_name}.",
             file=discord.File(fp=filename)
         )
 
-        os.remove(filename) 
+        os.remove(filename)
     else:
         await status_message.delete()
         await command_channel.send(
-            f"✅ Purge complete for <@{user_id}>.\n"
+            f"✅ Purge complete for <{target_mention}.\n"
             "🔍 Found 0 messages."
         )
 
