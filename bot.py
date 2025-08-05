@@ -5,6 +5,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import os
 from discord.ext import commands
+from discord import app_commands
 import asyncio
 
 load_dotenv()
@@ -54,9 +55,15 @@ async def on_ready():
     log_channel = bot.get_channel(LOGS_CHANNEL_ID)
     try:
         if log_channel:
-            await log_channel.send("Good morning, I am awake. ☀️ || <@679810887518781495> ||")
+            await log_channel.send("Good morning, I'm awake. ☀️")
     except:
         print("❌ Unable to send startup message.")
+    
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ Synced {len(synced)} slash commands.")
+    except Exception as e:
+        print(f"❌ Failed to sync commands: {e}")
 
 @bot.event
 async def on_message(message):
@@ -366,6 +373,51 @@ async def purgeall_error(ctx, error):
         await ctx.send(f"❌ Error: {error}")
 
 # .info command
+@bot.tree.command(name="info", description="Shows info about the bot")
+async def info(interaction: discord.Interaction):
+    guild = bot.get_guild(GUILD_ID)
+    total_members = guild.member_count
+    online_members = len([
+        m for m in guild.members if m.status == discord.Status.online or m.status == discord.Status.dnd
+    ])
+
+    delta = datetime.utcnow() - START_TIME
+    days, seconds = delta.days, delta.seconds
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    botUptime = f"{days}d {hours}h {minutes}m {seconds}s"
+    botLatency = round(bot.latency * 1000)
+    timestamp = int(guild.created_at.timestamp())
+    discord_time_format = f"<t:{timestamp}:F>"
+    boost_count = guild.premium_subscription_count
+
+    embed = discord.Embed(title=f"Beetle's Bot Version", description="**💬 Server + 🤖 Bot Info**\n", color=333333)
+    embed.add_field(name="🏷️ Server Name", value=f"{guild.name}", inline=True)
+    embed.add_field(name="🆔 Server ID", value=f"{guild.id}", inline=True)
+    embed.add_field(name="⏳ Server Creation Date", value=f"{discord_time_format}", inline=True)
+    embed.add_field(name="👥 Member Count", value=f"{online_members} online / {total_members} total", inline=True)
+    embed.add_field(name="💎 Boost Count", value=f"{boost_count}", inline=True)
+    embed.add_field(name="🏷️ Bot Name", value=f"{bot.user.name}", inline=True)
+    embed.add_field(name="🆔 Bot ID", value=f"{bot.user.id}", inline=True)
+    embed.add_field(name="⏱️ Uptime", value=f"{botUptime}", inline=True)
+    embed.add_field(name="⚡ Latency", value=f"{botLatency}", inline=True)
+    embed.add_field(name="🛠️ Current Version", value=f"v{BOT_VERSION}", inline=True)
+    embed.add_field(name="🐍 Framework", value="Discord.py (Python)", inline=True)
+    embed.add_field(name="🗝️ Developer", value="<@679810887518781495>", inline=True)
+
+    support_button = discord.ui.Button(
+        label="Support the server",
+        url="https://buymeacoffee.com/ph0biaz",
+        style=discord.ButtonStyle.link
+    )
+
+    view = discord.ui.View()
+    view.add_item(support_button)
+
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+    # await interaction.response.send_message("This is your bot info!", ephemeral=False)
+
 @bot.command()
 async def info(ctx):
     guild = ctx.guild
@@ -414,8 +466,5 @@ async def info(ctx):
 @info.error
 async def info_error(ctx, error):
     await ctx.send(f"❌ Error: {error}")
-
-@bot.command()
-async def test(ctx): await ctx.send("!roll")
 
 bot.run(TOKEN)
